@@ -11,6 +11,8 @@ Checks a finished **9:16** (or **4:5**) video ad before it goes live:
 - **Spec and sound:** codec, resolution, frame rate, file size, loudness and peaks.
 - **Hook and readability:** is the opening hook up long enough to read; is must-read text big enough
   and clear against what's behind it. Only judged when they're there.
+- **Pace:** words a minute, a silent opening, pauses over 0.6 s, clearly slow stretches, and how fast
+  the captions go by.
 
 ```bash
 pip install grant-merriel-video-checker
@@ -47,6 +49,10 @@ All numbers are pixels on a 1080 × 1920 frame; any other size is scaled first.
   Video: 1080 wide or more, H.264 or HEVC, 23.976-60 fps, a sound track, under Meta's 4 GB limit.
 - Hook: if there's text on the first frame, it should stay up at least 2 s. Must-read text at least 45 px
   tall and at least 3:1 contrast (WCAG 2.2, large text).
+- Pace: under 140 words a minute is slow for a social ad and over 210 is hard to follow (conversation is
+  about 150, NCVS; ad voice-overs 150-160). First word after 1 s, pauses over 0.6 s and any 10 s window
+  under 120 words a minute are flagged with times (house rules). Captions faster than 17 characters a
+  second (Netflix's subtitle standard) are reported for information.
 - Logos, products and graphics with no text are not checked. A person approves the ad and previews it in
   Ads Manager before launch.
 

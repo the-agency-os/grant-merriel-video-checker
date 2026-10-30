@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from . import __version__, captions, detect, judge, readability, report, spec, speech, zones
+from . import __version__, captions, detect, judge, pace, readability, report, spec, speech, zones
 from .spec import Check
 
 BACKEND_NAMES = {"vision": "Apple Vision", "rapidocr": "RapidOCR + OpenCV"}
@@ -60,6 +60,7 @@ def _speech_checks(source, elements, enabled, model, language, names=None) -> li
         return [
             Check("spelling", "Captions vs speech", "INFO", off),
             Check("timing", "Caption timing", "INFO", off),
+            Check("pace", "Pace", "INFO", off),
         ]
     try:
         words = speech.transcribe(source, model, language, names)
@@ -68,9 +69,15 @@ def _speech_checks(source, elements, enabled, model, language, names=None) -> li
         return [
             Check("spelling", "Captions vs speech", "INFO", why),
             Check("timing", "Caption timing", "INFO", why),
+            Check("pace", "Pace", "INFO", why),
         ]
     issues, stats = captions.compare(elements, words)
-    return [captions.spelling_check(issues, stats), captions.timing_check(issues, stats)]
+    spk = [(t, w) for w in words for t in captions.tokens(w.text)]
+    return [
+        captions.spelling_check(issues, stats),
+        captions.timing_check(issues, stats),
+        pace.pace_check(words, captions.caption_elements(elements, spk)),
+    ]
 
 
 def summary_text(

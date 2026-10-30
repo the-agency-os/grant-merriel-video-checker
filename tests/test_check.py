@@ -119,7 +119,7 @@ def test_text_on_the_chest_does_not_warn(tmp_path, which):
     assert r["verdicts"]["face"] == "PASS"
 
 
-EXTRA_KEYS = {"spec", "sound", "hook", "readability", "spelling", "timing"}
+EXTRA_KEYS = {"spec", "sound", "hook", "readability", "spelling", "timing", "pace"}
 
 
 def test_every_extra_row_is_reported(tmp_path):

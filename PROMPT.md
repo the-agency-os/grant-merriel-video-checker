@@ -35,7 +35,7 @@ For each video, run the tool and read what it prints and the files it writes (su
 
 STEP 2: TELL ME.
 1. The verdict line, as a small table: Master, Meta, YouTube Shorts, 4:5 crop, Text on the face (PASS, WARN or FAIL).
-2. What to fix: one line per block, in plain words, with the time and the tool's exact fix. Say which are FAIL (must fix) and which are only WARN (check it reads).
+2. What to fix: one line per block, in plain words, with the time and the tool's exact fix for Master (it's the strictest, so it covers every platform). Mention another platform only where it fails and Master doesn't. Say which are FAIL (must fix) and which are only WARN (check it reads).
 3. Show me the annotated frame for each block that needs fixing.
 4. Where report.html is.
 Use the tool's numbers and fixes exactly. Don't re-measure or second-guess them.

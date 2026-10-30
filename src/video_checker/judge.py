@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from .detect import FrameDetections
@@ -55,6 +56,19 @@ class Element:
     results: dict[str, Result] = field(default_factory=dict)
     tier: str = "must-read"  # "must-read" | "detail" | "face"
     track: list[tuple[float, Rect, Path]] = field(default_factory=list)  # every sighting
+    readings: dict[str, int] = field(default_factory=dict)  # OCR reading -> frames read that way
+
+
+OCR_SAME = 0.85  # two readings this similar, in the same place, are the same caption misread
+
+
+def _same_text(e: Element, d, key: str) -> bool:
+    """Same caption: identical text, or a near-identical reading (the text reader misread a letter)
+    of a caption sitting in the same place."""
+    mine = _norm(e.text)
+    if mine == key:
+        return True
+    return _iou(e.box, d.box) > 0.6 and SequenceMatcher(None, mine, key).ratio() >= OCR_SAME
 
 
 def _norm(s: str) -> str:
@@ -117,7 +131,7 @@ def group(
                     for e in open_
                     if id(e) not in seen
                     and e.kind == d.kind
-                    and (d.kind == "face" or _norm(e.text) == key)
+                    and (d.kind == "face" or _same_text(e, d, key))
                     and _iou(e.box, d.box) > 0.3
                     and f.t - e.end <= step * 1.5
                 ),
@@ -130,6 +144,9 @@ def group(
                     match.frame = f.path
                 match.box = grown
                 match.track.append((f.t, d.box, f.path))
+                if d.kind == "text":
+                    match.readings[d.text] = match.readings.get(d.text, 0) + 1
+                    match.text = max(match.readings, key=match.readings.get)
                 seen.add(id(match))
             else:
                 counter[d.kind] += 1
@@ -147,6 +164,8 @@ def group(
                     else ("detail" if d.box.h < must_read else "must-read"),
                 )
                 e.track.append((f.t, d.box, f.path))
+                if d.kind == "text":
+                    e.readings[d.text] = 1
                 open_.append(e)
                 seen.add(id(e))
         still = []

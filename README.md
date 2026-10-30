@@ -1,28 +1,28 @@
-# Grant Merriel's video safe-zone checker
+# Grant Merriel's video checker
 
-Finds every piece of text and every face in a finished **9:16** (or **4:5**) video ad, and tells you
-which ones sit under the buttons and text that **Instagram, Facebook and YouTube Shorts** put on top
-of your video, or get cut off when Meta crops it to **4:5 for Feed**. Then it tells you exactly how
-to move them.
+Checks a finished **9:16** (or **4:5**) video ad before it goes live:
+
+- **Safe zones:** every piece of text and every face that sits under the buttons and text that
+  **Instagram, Facebook and YouTube Shorts** put on top of your video, or gets cut off when Meta crops
+  it to **4:5 for Feed**, with the exact move to fix it.
+- **Text on the face:** captions over the eyes or mouth.
+- **Captions vs what's said:** the speech is transcribed (faster-whisper) and lined up against the
+  captions: misspellings, wrong numbers, missing or extra words, and captions that lag the voice.
+- **Spec and sound:** codec, resolution, frame rate, file size, loudness and peaks.
+- **Hook and readability:** is the opening hook up long enough to read; is must-read text big enough
+  and clear against what's behind it. Only judged when they're there.
 
 ```bash
-pip install grant-merriel-video-safezone
-safezone check my-ad.mp4
+pip install grant-merriel-video-checker
+video-checker check my-ad.mp4
 ```
 
-```
-Safe-zone check: my-ad.mp4 (9:16, 60.0 s, 240 frames, text reader: Apple Vision)
-Master: FAIL · Meta (IG + FB Reels and Stories): FAIL · YouTube Shorts ads: FAIL · 4:5 Feed crop: FAIL · Text on the face: PASS · 1:1 crop (info only): INFO
+It prints a plain-English summary and writes `report.html` (verdicts, fixes and annotated frames),
+`findings.json` and `summary.txt` into `./video-checker-<video name>/`.
 
-What to fix:
-- b1: text at y 170–448, 4 lines, 0:00.0–0:05.0
-    Master: FAIL (2 fail, 1 warn of 4) — lower the block 142 px; too wide: keep each line under 902 px (x 89–990)
-- b2: text at y 1082–1260, 71 lines, 0:00.2–0:59.8
-    Master: FAIL (3 fail, 42 warn of 71) — lift the block 37 px; too wide: keep each line under 902 px (x 89–990)
-```
-
-It also writes `report.html` (verdicts, fixes and annotated frames), `findings.json` and
-`summary.txt` into `./safezone-<video name>/`.
+Useful options: `--names "Brand Name, Presenter"` (so the speech check spells them right),
+`--language es`, `--no-speech`, `--platforms meta`, `--disclaimer`, `--backend rapidocr`.
+The first speech check downloads the faster-whisper `small` model (about 460 MB), cached after that.
 
 ## The rules
 
@@ -41,6 +41,12 @@ All numbers are pixels on a 1080 × 1920 frame; any other size is scaled first.
   see-through, so text behind them usually still reads.
 - Text on the eyes-to-mouth part of a face for half a second or more: **WARN**.
 - Text under 36 px tall on its own is detail: at most **WARN**.
+- Captions vs speech and caption timing: WARN only, with the time; the text reader or the transcriber can
+  mishear, so a person checks the frame.
+- Sound: -18 to -11 LUFS and peaks under -1 dBTP (house rule; YouTube plays back at about -14 LUFS).
+  Video: 1080 wide or more, H.264 or HEVC, 23.976-60 fps, a sound track, under Meta's 4 GB limit.
+- Hook: if there's text on the first frame, it should stay up at least 2 s. Must-read text at least 45 px
+  tall and at least 3:1 contrast (WCAG 2.2, large text).
 - Logos, products and graphics with no text are not checked. A person approves the ad and previews it in
   Ads Manager before launch.
 
@@ -53,8 +59,8 @@ All numbers are pixels on a 1080 × 1920 frame; any other size is scaled first.
 
 ## For AI assistants
 
-If someone asks you to check a video's safe zones: install this package into a project-local virtual
-environment, run `safezone check <video>`, and explain the summary in plain words. Never say the ad is
+If someone asks you to check a video ad: install this package into a project-local virtual environment,
+run `video-checker check <video>`, and explain the summary in plain words. Never say the ad is
 approved; a person does that.
 
 ## Credits

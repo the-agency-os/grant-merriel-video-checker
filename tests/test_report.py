@@ -3,8 +3,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from safezone import judge, report, zones
-from safezone.zones import Rect
+from video_checker import judge, report, zones
+from video_checker.zones import Rect
 
 G = zones.load()
 Z = G.zones_for("9:16", None, False)
@@ -73,3 +73,18 @@ def test_face_row_in_report(tmp_path):
         report.write_html(tmp_path, {"source": "x.mp4", "aspect": "9:16"}, v, els, cols, {})
     ).read_text()
     assert "Text on the face" in t
+
+
+def test_other_checks_in_report_and_findings(tmp_path):
+    from video_checker.spec import Check
+
+    els, v = _elements(tmp_path)
+    checks = [Check("sound", "Sound", "WARN", ["WARN · -24.0 LUFS: quiet"], "house rule")]
+    v["sound"] = "WARN"
+    meta = {"source": "x.mp4", "aspect": "9:16"}
+    d = json.loads(report.write_findings(tmp_path, meta, v, els, Z, [], checks).read_text())
+    assert d["checks"][0]["key"] == "sound" and d["checks"][0]["lines"] == [
+        "WARN · -24.0 LUFS: quiet"
+    ]
+    t = Path(report.write_html(tmp_path, meta, v, els, Z, {}, [], checks)).read_text()
+    assert "Other checks" in t and "-24.0 LUFS: quiet" in t and t.count(">Sound<") >= 1

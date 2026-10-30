@@ -1,5 +1,5 @@
-from safezone import zones
-from safezone.zones import Rect
+from video_checker import zones
+from video_checker.zones import Rect
 
 G = zones.load()
 

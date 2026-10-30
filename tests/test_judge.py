@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from safezone import judge, zones
-from safezone.detect import Detection, FrameDetections
-from safezone.zones import Rect
+from video_checker import judge, zones
+from video_checker.detect import Detection, FrameDetections
+from video_checker.zones import Rect
 
 G = zones.load()
 Z = G.zones_for("9:16", None, False)
@@ -274,3 +274,21 @@ def test_one_and_two_line_captions_form_one_band():
     els = judge.group(frames, fps=1)
     judge.judge(els, Z, G.inset)
     assert [b.count for b in judge.blocks(els, Z, G.inset)] == [3]
+
+
+def test_ocr_misreads_of_one_caption_merge_and_majority_wins():
+    box = (87, 1130, 982, 1220)
+    reads = [
+        "SPECIALISING IN, HOW",
+        "SPEGIALISING IN, HOW",
+        "SPECIALISING IN, HOW",
+        "SPECIALISING IN, HOW",
+    ]
+    els = judge.group([fd(i / 4, txt(r, box)) for i, r in enumerate(reads)], fps=4)
+    assert len(els) == 1 and els[0].text == "SPECIALISING IN, HOW"
+
+
+def test_different_captions_in_the_same_place_stay_separate():
+    box = (200, 1130, 800, 1200)
+    els = judge.group([fd(0, txt("SO THIS IS", box)), fd(0.25, txt("WHEN I GO", box))], fps=4)
+    assert [e.text for e in els] == ["SO THIS IS", "WHEN I GO"]

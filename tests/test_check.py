@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from safezone import check, cli, detect
+from video_checker import check, cli, detect
 
 FONT = "/System/Library/Fonts/Helvetica.ttc" if sys.platform == "darwin" else None
 FACE_FRAME = Path(__file__).parent / "fixtures" / "face-frame.jpg"
@@ -78,7 +78,8 @@ def test_breach_fails_meta_and_master(tmp_path, which):
 def test_safe_line_passes(tmp_path, which):
     src = text_video(tmp_path / "s.mp4", "SAFE LINE", (300, 800))
     r = check.check_video(src, tmp_path / "out", which=which)
-    assert {k: v for k, v in r["verdicts"].items() if k != "crop-1x1"} == {
+    zone_keys = {"master", "meta", "youtube-shorts", "crop-4x5", "face"}
+    assert {k: v for k, v in r["verdicts"].items() if k in zone_keys} == {
         "master": "PASS",
         "meta": "PASS",
         "youtube-shorts": "PASS",
@@ -116,3 +117,38 @@ def test_text_on_the_chest_does_not_warn(tmp_path, which):
     src = text_video(tmp_path / "c.mp4", "ON THE CHEST", (300, 1120), bg=FACE_FRAME)
     r = check.check_video(src, tmp_path / "out", which=which)
     assert r["verdicts"]["face"] == "PASS"
+
+
+EXTRA_KEYS = {"spec", "sound", "hook", "readability", "spelling", "timing"}
+
+
+def test_every_extra_row_is_reported(tmp_path):
+    src = text_video(tmp_path / "x.mp4", "SAFE LINE", (300, 800))
+    r = check.check_video(src, tmp_path / "out", speech=False)
+    assert EXTRA_KEYS <= set(r["verdicts"])
+    assert r["verdicts"]["hook"] == "PASS" and r["verdicts"]["spec"] == "WARN"  # no sound track
+    assert r["verdicts"]["spelling"] == "INFO"
+    assert "Other checks" in (tmp_path / "out" / "report.html").read_text()
+
+
+SPEECH_READY = (
+    sys.platform == "darwin"
+    and shutil.which("say")
+    and (Path.home() / ".cache/huggingface/hub/models--Systran--faster-whisper-small").exists()
+)
+
+
+@pytest.mark.skipif(not SPEECH_READY, reason="needs macOS 'say' and the cached whisper model")
+def test_caption_typo_against_real_speech(tmp_path):
+    import subprocess
+
+    aiff = tmp_path / "s.aiff"
+    subprocess.run(["say", "-o", str(aiff), "So this morning I had a new lead"], check=True)
+    silent = text_video(tmp_path / "v.mp4", "I HAD A NEW LEED", (180, 1120), seconds=3)
+    src = tmp_path / "talk.mp4"
+    detect.run_ffmpeg(
+        ["-i", str(silent), "-i", str(aiff), "-c:v", "copy", "-c:a", "aac", "-shortest", str(src)]
+    )
+    r = check.check_video(src, tmp_path / "out")
+    assert r["verdicts"]["spelling"] == "WARN"
+    assert "LEED" in r["summary"]

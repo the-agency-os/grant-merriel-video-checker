@@ -10,7 +10,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from . import __version__, detect, judge, report, zones
+from . import __version__, captions, detect, judge, readability, report, spec, speech, zones
+from .spec import Check
 
 BACKEND_NAMES = {"vision": "Apple Vision", "rapidocr": "RapidOCR + OpenCV"}
 
@@ -27,7 +28,7 @@ def classify_aspect(width: int, height: int, tolerance: float = 0.015) -> str:
 
 def probe(source: Path) -> tuple[int, int, float]:
     """Display size (after phone rotation) and duration, using only ffmpeg."""
-    tmp = Path(tempfile.mkdtemp(prefix="safezone-probe-"))
+    tmp = Path(tempfile.mkdtemp(prefix="video-checker-probe-"))
     try:
         r = subprocess.run(
             [detect.ffmpeg_exe(), "-y", "-i", str(source), "-frames:v", "1", str(tmp / "f.png")],
@@ -53,8 +54,30 @@ def _ts(seconds: float) -> str:
     return f"{int(m)}:{s:04.1f}"
 
 
-def summary_text(meta: dict, verdicts: dict, blocks: list, cols: list, out: Path | None) -> str:
+def _speech_checks(source, elements, enabled, model, language, names=None) -> list[Check]:
+    if not enabled:
+        off = ["INFO · not checked (--no-speech)"]
+        return [
+            Check("spelling", "Captions vs speech", "INFO", off),
+            Check("timing", "Caption timing", "INFO", off),
+        ]
+    try:
+        words = speech.transcribe(source, model, language, names)
+    except speech.SpeechUnavailable as exc:
+        why = [f"INFO · not checked: {exc}"]
+        return [
+            Check("spelling", "Captions vs speech", "INFO", why),
+            Check("timing", "Caption timing", "INFO", why),
+        ]
+    issues, stats = captions.compare(elements, words)
+    return [captions.spelling_check(issues, stats), captions.timing_check(issues, stats)]
+
+
+def summary_text(
+    meta: dict, verdicts: dict, blocks: list, cols: list, out: Path | None, extras=()
+) -> str:
     titles = {z.key: z.title for z in cols}
+    titles.update({c.key: c.title for c in extras})
     lines = [
         f"Safe-zone check: {Path(meta['source']).name} ({meta['aspect']}, "
         f"{meta['duration']:.1f} s, {meta['frames']} frames, "
@@ -83,6 +106,12 @@ def summary_text(meta: dict, verdicts: dict, blocks: list, cols: list, out: Path
                         f"    {titles.get(k, k)}: {st} ({c['FAIL']} fail, {c['WARN']} warn "
                         f"of {b.count}) — {b.fix[k]}"
                     )
+    if extras:
+        lines += ["", "Other checks:"]
+        for c in extras:
+            shown = c.lines if c.status in ("WARN", "FAIL") else c.lines[:1]
+            lines.append(f"- {c.title}: {c.status}")
+            lines += [f"    {ln.split(' · ', 1)[-1]}" for ln in shown]
     lines += ["", *report.LIMITS]
     if out:
         lines.append(f"Report: {out / 'report.html'}")
@@ -97,23 +126,28 @@ def check_video(
     disclaimer: bool = False,
     fps: float = 4.0,
     which: str | None = None,
+    speech: bool = True,
+    whisper_model: str = "small",
+    language: str | None = None,
+    names: list[str] | None = None,
 ) -> dict:
     """Run the full check. Returns verdicts, blocks and the plain-words summary."""
     source = Path(source).expanduser().resolve()
     if not source.exists():
         raise FileNotFoundError(source)
-    out = Path(out or Path.cwd() / f"safezone-{source.stem}").expanduser().resolve()
+    out = Path(out or Path.cwd() / f"video-checker-{source.stem}").expanduser().resolve()
     out.mkdir(parents=True, exist_ok=True)
     geo = zones.load()
     w, h, duration = probe(source)
     aspect = classify_aspect(w, h)
+    extras: list[Check] = spec.check_file(source, w, h)
     zone_list = geo.zones_for(aspect, platforms, disclaimer)
     if not zone_list:
         text = f"{source.name} is {w}x{h} ({aspect}). This checker covers 9:16 and 4:5 videos only."
         (out / "summary.txt").write_text(text + "\n")
         return {"source": str(source), "aspect": aspect, "verdicts": {}, "summary": text}
     used = detect.backend(which)
-    work = Path(tempfile.mkdtemp(prefix="safezone-"))
+    work = Path(tempfile.mkdtemp(prefix="video-checker-"))
     try:
         canvas = zone_list[0].canvas
         frames = detect.detect_video(source, work, fps, canvas, used)
@@ -123,6 +157,9 @@ def check_video(
         verdicts = judge.judge(elements, zone_list, geo.inset)
         verdicts[judge.FACE_KEY] = judge.face_check(elements)
         blocks = judge.blocks(elements, zone_list, geo.inset)
+        extras += [readability.hook_check(elements), readability.readability_check(elements)]
+        extras += _speech_checks(source, elements, speech, whisper_model, language, names)
+        verdicts.update({c.key: c.status for c in extras})
         frame_zone = geo.master if aspect == "9:16" else geo.feed_4x5
         annotated = {}
         for i, b in enumerate(blocks):
@@ -157,9 +194,9 @@ def check_video(
             "tool_version": __version__,
         }
         cols = [*zone_list, judge.FACE_ZONE]
-        report.write_findings(out, meta, verdicts, elements, cols, blocks)
-        report.write_html(out, meta, verdicts, elements, cols, annotated, blocks)
-        text = summary_text(meta, verdicts, blocks, cols, out)
+        report.write_findings(out, meta, verdicts, elements, cols, blocks, extras)
+        report.write_html(out, meta, verdicts, elements, cols, annotated, blocks, extras)
+        text = summary_text(meta, verdicts, blocks, cols, out, extras)
         (out / "summary.txt").write_text(text + "\n")
         return {
             "source": str(source),

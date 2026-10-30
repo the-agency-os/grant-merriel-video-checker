@@ -1,4 +1,4 @@
-"""Command line: safezone check <video>."""
+"""Command line: video-checker check <video>."""
 
 from __future__ import annotations
 
@@ -13,15 +13,15 @@ PLATFORMS = {"meta", "youtube-shorts"}
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="safezone",
+        prog="video-checker",
         description="Grant Merriel's video safe-zone checker for 9:16 and 4:5 ads "
         "(Instagram, Facebook, YouTube Shorts and the 4:5 Feed crop).",
     )
-    p.add_argument("--version", action="version", version=f"safezone {__version__}")
+    p.add_argument("--version", action="version", version=f"video-checker {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("check", help="check one finished video")
     c.add_argument("video")
-    c.add_argument("--out", help="report folder (default: ./safezone-<video name>)")
+    c.add_argument("--out", help="report folder (default: ./video-checker-<video name>)")
     c.add_argument("--platforms", help="comma list from meta,youtube-shorts (default: both)")
     c.add_argument("--disclaimer", action="store_true", help="Meta's stricter disclaimer bottom")
     c.add_argument("--fps", type=float, default=4.0, help="frames sampled per second")
@@ -31,6 +31,14 @@ def build_parser() -> argparse.ArgumentParser:
         default="auto",
         help="text reader (default: Apple Vision on a Mac, else RapidOCR)",
     )
+    c.add_argument("--no-speech", action="store_true", help="skip the captions-vs-speech check")
+    c.add_argument(
+        "--whisper-model",
+        default="small",
+        help="faster-whisper model for the speech check (default: small)",
+    )
+    c.add_argument("--language", help="spoken language code, e.g. en, es, pt (default: detect)")
+    c.add_argument("--names", help='brand and people names to expect, e.g. "Valher Media, Charley"')
     c.add_argument("--json", action="store_true", help="print the full result as JSON")
     return p
 
@@ -52,6 +60,10 @@ def main(argv=None) -> int:
             disclaimer=a.disclaimer,
             fps=a.fps,
             which=None if a.backend == "auto" else a.backend,
+            speech=not a.no_speech,
+            whisper_model=a.whisper_model,
+            language=a.language,
+            names=[n.strip() for n in a.names.split(",")] if a.names else None,
         )
     except FileNotFoundError as exc:
         print(f"video not found: {exc}", file=sys.stderr)

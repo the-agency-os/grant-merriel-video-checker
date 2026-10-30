@@ -116,7 +116,7 @@ def _block_dict(i: int, b: Block) -> dict:
 
 
 def write_findings(
-    out_dir, meta: dict, verdicts: dict, elements: list[Element], zones, blocks=None
+    out_dir, meta: dict, verdicts: dict, elements: list[Element], zones, blocks=None, checks=None
 ) -> Path:
     data = {
         **meta,
@@ -126,6 +126,16 @@ def write_findings(
             {"key": z.key, "title": z.title, "source": z.source, "note": z.note} for z in zones
         ],
         "elements": [_element_dict(e) for e in elements],
+        "checks": [
+            {
+                "key": c.key,
+                "title": c.title,
+                "status": c.status,
+                "lines": c.lines,
+                "source": c.source,
+            }
+            for c in checks or []
+        ],
         "limits": LIMITS,
     }
     p = Path(out_dir) / "findings.json"
@@ -150,13 +160,23 @@ def _worst(e: Element) -> str:
 
 
 def write_html(
-    out_dir, meta, verdicts, elements: list[Element], zones, annotated, blocks=None
+    out_dir, meta, verdicts, elements: list[Element], zones, annotated, blocks=None, checks=None
 ) -> Path:
     esc = html.escape
     rows = "".join(
         f"<tr><td>{esc(z.title)}</td><td>{_pill(verdicts.get(z.key, 'PASS'))}</td>"
         f"<td class='src'>{esc(z.source)}</td></tr>"
         for z in zones
+    ) + "".join(
+        f"<tr><td>{esc(c.title)}</td><td>{_pill(c.status)}</td>"
+        f"<td class='src'>{esc(c.source)}</td></tr>"
+        for c in checks or []
+    )
+    other = "".join(
+        f"<h3>{esc(c.title)} {_pill(c.status)}</h3><ul>"
+        + "".join(f"<li>{esc(line)}</li>" for line in c.lines)
+        + "</ul>"
+        for c in checks or []
     )
     breaches = [e for e in elements if _worst(e) in ("FAIL", "WARN")]
     brows = ""
@@ -220,6 +240,7 @@ def write_html(
 <p><b>{esc(summary)}</b></p>
 <h2>Verdicts</h2><table><tr><th>Placement</th><th>Verdict</th><th>Source</th></tr>{rows}</table>
 <h2>What to fix</h2>{todo or "<p>Nothing to fix.</p>"}
+<h2>Other checks</h2>{other or "<p>None run.</p>"}
 <h2>Frames</h2>{figs or "<p>No other breach frames.</p>"}
 <details><summary><b>Every line that needs attention ({len(breaches)})</b></summary>
 <div class="wrap"><table><tr><th>Time</th><th>Element</th>{heads}<th>Fix</th></tr>

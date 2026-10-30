@@ -4,7 +4,7 @@ import sys
 import pytest
 from PIL import Image, ImageDraw, ImageFont
 
-from safezone import detect
+from video_checker import detect
 
 needs_vision = pytest.mark.skipif(
     sys.platform != "darwin" or not shutil.which("swiftc"), reason="Apple Vision unavailable"
@@ -164,11 +164,11 @@ def test_rapidocr_finds_text_box_in_pixels(tmp_path):
 
 
 def test_backend_choice(monkeypatch):
-    monkeypatch.setenv("SAFEZONE_BACKEND", "rapidocr")
+    monkeypatch.setenv("VIDEO_CHECKER_BACKEND", "rapidocr")
     assert detect.backend() == "rapidocr"
     monkeypatch.setattr(detect, "_vision_possible", lambda: False)
     monkeypatch.setattr(detect, "_rapidocr_available", lambda: False)
-    monkeypatch.delenv("SAFEZONE_BACKEND")
+    monkeypatch.delenv("VIDEO_CHECKER_BACKEND")
     with pytest.raises(detect.DetectionUnavailable):
         detect.backend()
 

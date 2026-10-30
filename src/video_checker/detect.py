@@ -3,7 +3,7 @@
 Two backends, same output:
 - vision: Apple Vision through a small compiled Swift helper (macOS with Xcode Command Line Tools).
 - rapidocr: RapidOCR text boxes and OpenCV face boxes (any OS, pure pip install).
-`auto` uses vision when it can and rapidocr otherwise. SAFEZONE_BACKEND forces one.
+`auto` uses vision when it can and rapidocr otherwise. VIDEO_CHECKER_BACKEND forces one.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from .zones import Rect
 SWIFT = Path(__file__).parent / "assets" / "vzones_detect.swift"
 FACE_SCORE = 0.7
 YUNET = Path(__file__).parent / "assets" / "face_detection_yunet_2023mar.onnx"  # OpenCV Zoo, MIT
-BINARY = Path.home() / "Library" / "Caches" / "safezone" / "vzones-detect"
+BINARY = Path.home() / "Library" / "Caches" / "video-checker" / "vzones-detect"
 
 
 class DetectionUnavailable(RuntimeError):
@@ -240,7 +240,7 @@ def run_rapidocr(paths: list[Path]) -> list[list[Detection]]:
     """Text boxes from RapidOCR and face boxes from OpenCV's YuNet face detector."""
     if not _rapidocr_available():
         raise DetectionUnavailable(
-            "no text reader: install with  pip install 'grant-merriel-video-safezone[ocr]'"
+            "no text reader: install with  pip install 'grant-merriel-video-checker[ocr]'"
         )
     import cv2
     from rapidocr_onnxruntime import RapidOCR
@@ -281,7 +281,7 @@ def _vision_possible() -> bool:
 
 def backend(requested: str | None = None) -> str:
     """Pick the backend: vision on a Mac that can build the helper, else rapidocr."""
-    want = (requested or os.environ.get("SAFEZONE_BACKEND") or "auto").lower()
+    want = (requested or os.environ.get("VIDEO_CHECKER_BACKEND") or "auto").lower()
     if want == "vision":
         return "vision"
     if want == "rapidocr":
@@ -292,7 +292,7 @@ def backend(requested: str | None = None) -> str:
         return "rapidocr"
     raise DetectionUnavailable(
         "no text reader on this machine: on a Mac install Xcode Command Line Tools "
-        "(xcode-select --install), anywhere else pip install 'grant-merriel-video-safezone[ocr]'"
+        "(xcode-select --install), anywhere else pip install 'grant-merriel-video-checker[ocr]'"
     )
 
 

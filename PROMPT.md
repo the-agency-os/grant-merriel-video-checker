@@ -30,7 +30,9 @@ Use Grant Merriel's video checker: the Python package grant-merriel-video-checke
 - On a Mac it reads text with Apple Vision. If it says Xcode Command Line Tools are missing, reinstall it with the extra reader instead of asking me: pip install "grant-merriel-video-checker[ocr]"
 - Run it on each video: video-checker check "<video>" --out "Video check/<video name>"
   Add --names "Name One, Name Two" if I gave you names, and --language es (or pt, etc.) if the ad isn't in English.
-- If you can't run code or can't download it here, say so in one line, then use THE BACKUP METHOD at the end.
+- If installing needs my approval or gets blocked, show me the exact install command in one line and wait for my OK. Don't switch to the backup for that.
+- Only if you can't run code at all here, or downloads are impossible, say so in one line and use THE BACKUP METHOD at the end.
+- With the tool, STEP 1 and STEP 2 are all you do; THE BACKUP METHOD is only for when the tool can't run.
 
 STEP 1: RUN IT.
 For each video, run the tool and read what it prints and the files it writes (summary.txt, report.html, findings.json, and the annotated frames in frames/).

@@ -1,0 +1,145 @@
+{
+  "version": "2026-10-30.3",
+  "canvas": [
+    1080,
+    1920
+  ],
+  "inset": 24,
+  "placements": {
+    "meta": {
+      "title": "Meta: IG + FB Reels and Stories",
+      "severity": "fail",
+      "rects": [
+        [
+          65,
+          269,
+          1015,
+          1248
+        ]
+      ],
+      "source": "Meta Business Help 980593475366490, verified 2026-10-30",
+      "note": "Hard: top 14%, bottom 35%, sides 6%. Soft (WARN): Meta's 227 px icon rail over the bottom 40%; measured icons start at y 1562 (IG) / 1641 (FB), see 03-META-PREVIEW-MEASUREMENTS.md.",
+      "soft": [
+        [
+          853,
+          1152,
+          1080,
+          1920
+        ]
+      ]
+    },
+    "meta-disclaimer": {
+      "title": "Meta with disclaimer",
+      "severity": "fail",
+      "rects": [
+        [
+          65,
+          269,
+          1015,
+          1152
+        ]
+      ],
+      "source": "Meta Business Help 980593475366490, verified 2026-10-30",
+      "note": "Bottom 40% reserved when Meta adds a disclaimer; opt in with --disclaimer.",
+      "soft": [
+        [
+          853,
+          1152,
+          1080,
+          1920
+        ]
+      ]
+    },
+    "youtube-shorts": {
+      "title": "YouTube Shorts ads",
+      "severity": "fail",
+      "rects": [
+        [
+          48,
+          288,
+          1032,
+          1248
+        ]
+      ],
+      "source": "Google youtubesafezoneoverlay_vertical_final.png, measured 2026-10-30",
+      "note": "Hard edge from Google's overlay; hard right edge 1032 mirrors Google's 48 px left margin (agency inference). Soft (WARN): the icon rail as measured on a real Short (m.youtube.com, 2026-10-30): like/comment/share at x 870-946 from y 1343. On tall phones YouTube can crop ~97 px off each side.",
+      "soft": [
+        [
+          870,
+          1343,
+          1080,
+          1920
+        ]
+      ]
+    }
+  },
+  "crops": {
+    "crop-4x5": {
+      "title": "4:5 Feed crop (centred)",
+      "severity": "fail",
+      "rects": [
+        [
+          0,
+          285,
+          1080,
+          1635
+        ]
+      ],
+      "source": "Centred 1080x1350 crop of 1080x1920",
+      "note": "What Meta Feed shows when one 9:16 file runs in Feed."
+    },
+    "crop-1x1": {
+      "title": "1:1 crop (centred, info only)",
+      "severity": "info",
+      "rects": [
+        [
+          0,
+          420,
+          1080,
+          1500
+        ]
+      ],
+      "source": "Centred 1080x1080 crop of 1080x1920",
+      "note": "Not required (Grant, 2026-10-30)."
+    }
+  },
+  "master": {
+    "title": "Master zone",
+    "members": [
+      "meta",
+      "youtube-shorts",
+      "crop-4x5"
+    ],
+    "rects": [
+      [
+        65,
+        288,
+        1015,
+        1248
+      ]
+    ],
+    "note": "Hard zone = Meta ∩ YouTube Shorts ads ∩ 4:5. TikTok removed (Grant, 2026-10-30). Icon rails of the members are soft (WARN)."
+  },
+  "feed-4x5": {
+    "title": "Meta Feed 4:5",
+    "canvas": [
+      1080,
+      1350
+    ],
+    "severity": "fail",
+    "rects": [
+      [
+        65,
+        65,
+        1015,
+        1285
+      ]
+    ],
+    "source": "Agency rule: Meta gives no pixel figure for 4:5; 6% margin from Meta's 9:16 side rule",
+    "note": "Used when the input file itself is 4:5."
+  },
+  "tiers": {
+    "must_read_height": 36,
+    "note": "Text at least 36 px tall is must-read (captions, headlines, CTA, prices); smaller text is detail and at most WARN."
+  }
+}
